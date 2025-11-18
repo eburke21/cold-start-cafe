@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+
+# Node
+node_modules/
+frontend/dist/
+.vite/
+
+# Environment
+.env
+.env.local
+dev-docs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Data (parquet files are committed under data/)
+*.parquet
+!data/*.parquet
