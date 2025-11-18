@@ -6,14 +6,23 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.data.loader import DataStore
 
 logger = structlog.get_logger()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    # Startup: data loading will be added in Phase 1
+    # Startup: load MovieLens data into memory
     logger.info("Starting ColdStart Café backend")
+    data_store = DataStore(data_dir=settings.DATA_DIR)
+    app.state.data = data_store
+    logger.info(
+        "Loaded %d movies, %d ratings, %d users",
+        len(data_store.movies_df),
+        len(data_store.ratings_df),
+        len(data_store.users_df),
+    )
     yield
     # Shutdown
     logger.info("Shutting down ColdStart Café backend")

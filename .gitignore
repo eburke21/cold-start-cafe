@@ -14,6 +14,7 @@ frontend/dist/
 .env
 .env.local
 dev-docs/
+.claude
 
 # IDE
 .idea/
@@ -22,6 +23,7 @@ dev-docs/
 *.swo
 .DS_Store
 
-# Data (parquet files are committed under data/)
+# Data (parquet files are committed under data/, raw downloads excluded)
 *.parquet
 !data/*.parquet
+data/raw/
