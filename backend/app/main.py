@@ -2,11 +2,16 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.data.loader import DataStore
+from app.routers.movies import router as movies_router
+from app.routers.simulation import init_simulation_router
+from app.routers.simulation import router as simulation_router
+from app.services.session_manager import SessionManager
 
 logger = structlog.get_logger()
 
@@ -23,9 +28,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         len(data_store.ratings_df),
         len(data_store.users_df),
     )
+
+    # Initialize session manager and inject into router
+    session_manager = SessionManager(max_sessions=settings.MAX_CONCURRENT_SESSIONS)
+    app.state.session_manager = session_manager
+    init_simulation_router(session_manager)
+    logger.info("Session manager initialized", max_sessions=settings.MAX_CONCURRENT_SESSIONS)
+
     yield
     # Shutdown
-    logger.info("Shutting down ColdStart Café backend")
+    logger.info(
+        "Shutting down ColdStart Café backend",
+        active_sessions=session_manager.session_count,
+    )
 
 
 app = FastAPI(
@@ -42,6 +57,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register routers
+app.include_router(simulation_router)
+app.include_router(movies_router)
+
+
+# Global exception handler for ValueError → 400
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )
 
 
 @app.get("/api/v1/health")
