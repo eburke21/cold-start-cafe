@@ -1,21 +1,22 @@
-import { Box, Heading, Text } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
+import { Route, Routes } from "react-router-dom";
+
+import Navbar from "./components/Navbar";
+import { Toaster } from "./components/Toaster";
+import ChallengePage from "./pages/ChallengePage";
+import LandingPage from "./pages/LandingPage";
+import SimulationDashboard from "./pages/SimulationDashboard";
 
 function App() {
   return (
-    <Box
-      minH="100vh"
-      bg="brand.linen"
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
-    >
-      <Heading as="h1" size="4xl" color="brand.terracotta">
-        ColdStart Café
-      </Heading>
-      <Text mt={4} fontSize="xl" color="brand.espresso">
-        Experience the cold-start problem, one signal at a time.
-      </Text>
+    <Box minH="100vh" bg="brand.linen">
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/simulate" element={<SimulationDashboard />} />
+        <Route path="/challenge" element={<ChallengePage />} />
+      </Routes>
+      <Toaster />
     </Box>
   );
 }

@@ -31,6 +31,29 @@ cold-start-cafe/
 │   └── tests/
 ├── frontend/         # React 19, TypeScript, Vite, Chakra UI v3
 │   └── src/
+│       ├── api/
+│       │   └── client.ts       # Typed fetch wrapper with ApiError class
+│       ├── components/
+│       │   ├── Navbar.tsx          # Café-branded nav with active link state
+│       │   ├── SignalPanel.tsx     # Four accordion sections for signal input
+│       │   ├── MovieSearchModal.tsx # Debounced search, dual-mode (rating/viewHistory)
+│       │   └── Toaster.tsx         # Chakra v3 toast renderer
+│       ├── hooks/
+│       │   └── useSimulation.ts    # Single source of truth for simulation state + actions
+│       ├── pages/
+│       │   ├── LandingPage.tsx     # Hero section + algorithm explainer grid
+│       │   ├── SimulationDashboard.tsx  # Three-column layout (signals | data | narration)
+│       │   └── ChallengePage.tsx   # Placeholder for Phase 6+
+│       ├── types/
+│       │   ├── simulation.ts   # TS interfaces mirroring backend Pydantic models
+│       │   ├── movies.ts       # MovieSearchResult, MovieSearchResponse
+│       │   └── challenge.ts    # Placeholder types for Phase 6+
+│       ├── utils/
+│       │   └── toaster.ts      # createToaster instance (separated for fast-refresh)
+│       ├── theme/
+│       │   └── index.ts        # Chakra v3 system: brand colors, algo colors, fonts
+│       ├── App.tsx             # Routes + Navbar + Toaster
+│       └── main.tsx            # StrictMode + BrowserRouter + ChakraProvider
 ├── data/             # Bundled MovieLens 100K Parquet files (committed)
 ├── scripts/          # Data preparation scripts
 └── docker-compose.yml
@@ -124,6 +147,39 @@ routers/movies.py            services/validators.py
 - Ground truth stored separately from `SimulationState` to prevent data leakage through Pydantic serialization
 - Global `@app.exception_handler(ValueError)` converts any `ValueError` to 400 JSON response
 
+### Frontend Architecture
+
+```
+App.tsx (Routes + Navbar + Toaster)
+├── LandingPage          → Hero + algorithm grid, CTA navigates to /simulate
+├── SimulationDashboard  → Three-column layout, owns useSimulation hook
+│   ├── SignalPanel      → Four accordion sections (rating, demographics, genres, view history)
+│   ├── DebugStepView    → Center panel showing metrics per step (placeholder for Phase 5 charts)
+│   ├── NarrationView    → Right panel showing narration per step
+│   └── MovieSearchModal → Debounced search, dual-mode (rating stars / viewHistory checkboxes)
+└── ChallengePage        → Placeholder for Phase 6+
+```
+
+- **`useSimulation` hook** is the single source of truth — components receive data and callbacks via props, never call `api/client.ts` directly
+- **Exception:** `MovieSearchModal` calls `searchMovies()` directly since search results are ephemeral (not simulation state)
+- **Auto-create on mount:** `useEffect` + `useRef` guard prevents duplicate sessions in StrictMode
+- **Error handling:** API errors → `toaster.create()` toast notifications
+- **Loading states:** `Skeleton` components in center panel during initial load
+
+### Chakra UI v3 Patterns
+
+- **Composable API:** `Dialog.Root`/`.Content`/`.Header` (not v2's `Modal`/`ModalContent`/`ModalHeader`)
+- **Disabled propagation:** behavioral props (`disabled`, `readOnly`) go on `.Root`, not on `.Field`
+- **Toast architecture:** `createToaster()` in `utils/toaster.ts` (imperative store), `<Toaster>` in `components/Toaster.tsx` (declarative renderer) — separated for ESLint `react-refresh/only-export-components`
+- **Theme tokens:** `{ value: "#hex" }` syntax, `brand.*` for visual identity, `algo.*` for algorithm-specific colors
+- **Fonts:** Playfair Display (headings) + Inter (body) via Google Fonts `<link>` in `index.html`, referenced in theme `fonts` tokens
+
+### TypeScript Config
+
+- `erasableSyntaxOnly: true` — no parameter properties, no enums, no namespaces (ensures compatibility with esbuild type stripping)
+- `verbatimModuleSyntax: true` — must use `import type` for type-only imports
+- Strict mode enabled
+
 ## Code Style
 
 ### Backend (Python)
@@ -141,9 +197,12 @@ routers/movies.py            services/validators.py
 
 ### Frontend (TypeScript/React)
 - ESLint + Prettier
-- Chakra UI v3 for components and theming
-- Recharts for data visualization
-- React Router for navigation
+- Chakra UI v3 for components and theming (composable `.Root`/`.Content` API, not v2)
+- `useCallback` on all hook actions to stabilize function references for child components
+- Debounced search via `useEffect` + `setTimeout` cleanup (no external library)
+- `import type` for all type-only imports (enforced by `verbatimModuleSyntax`)
+- Recharts for data visualization (Phase 5)
+- React Router v7 for navigation (`BrowserRouter` wrapping app in `main.tsx`)
 
 ## Environment
 
@@ -160,7 +219,7 @@ GitHub Actions runs on push/PR to `main`:
 
 ## Tests
 
-109 tests total across 8 test files:
+109 backend tests across 8 test files:
 
 | File | Count | Scope |
 |---|---|---|
@@ -178,4 +237,13 @@ uv run pytest -v                                 # all 109 tests
 uv run pytest tests/test_algorithms.py -v         # fast algorithm unit tests only
 uv run pytest tests/test_algorithm_pipeline.py -v # slow integration tests
 uv run pytest tests/test_simulation_api.py tests/test_movies_api.py -v  # API integration tests
+```
+
+Frontend checks (no test suite yet — manual testing via browser):
+
+```bash
+cd frontend
+npm run type-check   # tsc --noEmit — strict TypeScript verification
+npm run lint         # eslint — 0 errors, 0 warnings
+npm run build        # production build — verifies full compilation
 ```
