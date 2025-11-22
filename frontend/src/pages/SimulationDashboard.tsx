@@ -10,110 +10,68 @@ import {
   VStack,
 } from "@chakra-ui/react";
 
+import AlgorithmTimeline from "../components/AlgorithmTimeline";
+import MetricsChart from "../components/MetricsChart";
+import NarratorPanel from "../components/NarratorPanel";
+import RecommendationCards from "../components/RecommendationCards";
+import SignalFilmstrip from "../components/SignalFilmstrip";
 import MovieSearchModal from "../components/MovieSearchModal";
 import type { MovieSearchModalMode } from "../components/MovieSearchModal";
 import SignalPanel from "../components/SignalPanel";
 import { toaster } from "../utils/toaster";
 import { useSimulation } from "../hooks/useSimulation";
-import type { SimulationStep } from "../types/simulation";
 
-/**
- * Temporary debug view showing raw step data as formatted cards.
- * Will be replaced by MetricsChart + AlgorithmTimeline in Phase 5.
- */
-function DebugStepView({ steps }: { steps: SimulationStep[] }) {
-  if (steps.length === 0) {
-    return (
-      <Text color="brand.espressoLight" fontStyle="italic">
-        No simulation data yet.
-      </Text>
-    );
-  }
-
-  return (
-    <VStack gap={4} align="stretch">
-      {steps.map((step) => (
-        <Box
-          key={step.step_number}
-          bg="white"
-          p={4}
-          borderRadius="md"
-          shadow="sm"
-        >
-          <Text fontWeight="600" mb={2}>
-            Step {step.step_number}
-            {step.signal_added
-              ? ` — ${step.signal_added.type}`
-              : " — Initial (no signals)"}
-          </Text>
-          {step.results.map((result) => (
-            <HStack key={result.algorithm} justify="space-between" py={1}>
-              <Text fontSize="sm" fontWeight="500">
-                {result.algorithm}
-              </Text>
-              <Text fontSize="xs" color="brand.espressoLight">
-                P@10: {result.precision_at_10.toFixed(3)} | R@10:{" "}
-                {result.recall_at_10.toFixed(3)} | NDCG:{" "}
-                {result.ndcg_at_10.toFixed(3)}
-              </Text>
-            </HStack>
-          ))}
-        </Box>
-      ))}
-    </VStack>
-  );
-}
-
-/**
- * Temporary narration view showing narration text for each step.
- * Will be replaced by NarratorPanel in Phase 5.
- */
-function NarrationView({ steps }: { steps: SimulationStep[] }) {
-  if (steps.length === 0) {
-    return (
-      <Text color="brand.espressoLight" fontStyle="italic" fontSize="sm">
-        Start a simulation to see narration.
-      </Text>
-    );
-  }
-
-  return (
-    <VStack gap={3} align="stretch">
-      {steps.map((step) => (
-        <Box
-          key={step.step_number}
-          bg="white"
-          p={3}
-          borderRadius="md"
-          shadow="sm"
-          borderLeftWidth="3px"
-          borderLeftColor="brand.honey"
-        >
-          <Text fontSize="xs" fontWeight="600" color="brand.espressoLight">
-            Step {step.step_number}
-          </Text>
-          <Text fontSize="sm" mt={1}>
-            {step.narration}
-          </Text>
-        </Box>
-      ))}
-    </VStack>
-  );
-}
-
-/** Loading skeleton for the center panel */
+/** Loading skeleton matching the timeline + chart shape */
 function LoadingSkeleton() {
   return (
     <VStack gap={4} align="stretch">
-      {[1, 2, 3].map((i) => (
-        <Box key={i} bg="white" p={4} borderRadius="md" shadow="sm">
-          <Skeleton height="16px" width="200px" mb={3} />
-          <Skeleton height="12px" width="100%" mb={2} />
-          <Skeleton height="12px" width="100%" mb={2} />
-          <Skeleton height="12px" width="80%" />
-        </Box>
-      ))}
+      {/* Timeline skeleton */}
+      <Box bg="white" p={4} borderRadius="lg" shadow="sm">
+        <Skeleton height="12px" width="100px" mb={3} />
+        {[1, 2, 3, 4].map((i) => (
+          <HStack key={i} gap={2} mb={2}>
+            <Skeleton height="12px" width="80px" />
+            <Skeleton height="22px" flex={1} />
+          </HStack>
+        ))}
+      </Box>
+      {/* Chart skeleton */}
+      <Box bg="white" p={4} borderRadius="lg" shadow="sm">
+        <HStack gap={2} mb={3}>
+          <Skeleton height="28px" width="90px" borderRadius="full" />
+          <Skeleton height="28px" width="80px" borderRadius="full" />
+          <Skeleton height="28px" width="80px" borderRadius="full" />
+        </HStack>
+        <Skeleton height="320px" borderRadius="md" />
+      </Box>
     </VStack>
+  );
+}
+
+/** Friendly empty state for step 0 — no signals added yet */
+function EmptyState() {
+  return (
+    <Box textAlign="center" py={12}>
+      <Text fontSize="4xl" mb={3}>
+        🍳
+      </Text>
+      <Heading
+        as="h4"
+        size="md"
+        color="brand.espresso"
+        fontFamily="heading"
+        mb={2}
+      >
+        The kitchen is empty
+      </Heading>
+      <Text color="brand.espressoLight" fontSize="sm" maxW="300px" mx="auto">
+        Add your first signal to get cooking! Use the panel on the left to rate a
+        movie, set demographics, choose genres, or add viewing history.
+      </Text>
+      <Text fontSize="2xl" mt={4}>
+        👈
+      </Text>
+    </Box>
   );
 }
 
@@ -199,11 +157,45 @@ export default function SimulationDashboard() {
         </Button>
       </HStack>
 
-      {/* Three-column layout */}
+      {/* Session expired / fatal error state */}
+      {error && !sessionId && (
+        <Box textAlign="center" py={20} px={8}>
+          <Text fontSize="4xl" mb={3}>
+            ☕
+          </Text>
+          <Heading
+            as="h3"
+            size="lg"
+            color="brand.espresso"
+            fontFamily="heading"
+            mb={2}
+          >
+            Your table&apos;s been cleared!
+          </Heading>
+          <Text color="brand.espressoLight" mb={6} maxW="400px" mx="auto">
+            {error}
+          </Text>
+          <Button
+            bg="brand.terracotta"
+            color="white"
+            _hover={{ bg: "brand.terracottaDark" }}
+            onClick={() => {
+              hasInitialized.current = true;
+              reset();
+              createSimulation();
+            }}
+          >
+            Start a New Simulation
+          </Button>
+        </Box>
+      )}
+
+      {/* Three-column layout (hidden when session expired) */}
       <Grid
         templateColumns={{ base: "1fr", lg: "280px 1fr 300px" }}
         gap={0}
         minH="calc(100vh - 120px)"
+        display={error && !sessionId ? "none" : undefined}
       >
         {/* Left: Signal Panel */}
         <Box
@@ -225,7 +217,7 @@ export default function SimulationDashboard() {
           />
         </Box>
 
-        {/* Center: Debug data view (replaced by charts in Phase 5) */}
+        {/* Center: Metrics chart + timeline */}
         <Box p={6} overflowY="auto">
           <Heading
             as="h3"
@@ -234,16 +226,26 @@ export default function SimulationDashboard() {
             mb={4}
             fontFamily="heading"
           >
-            Algorithm Results
+            Algorithm Performance
           </Heading>
           {isLoading && steps.length === 0 ? (
             <LoadingSkeleton />
+          ) : steps.length <= 1 ? (
+            <>
+              <AlgorithmTimeline steps={steps} />
+              <EmptyState />
+            </>
           ) : (
-            <DebugStepView steps={steps} />
+            <>
+              <AlgorithmTimeline steps={steps} />
+              <SignalFilmstrip steps={steps} />
+              <MetricsChart steps={steps} />
+              <RecommendationCards steps={steps} />
+            </>
           )}
         </Box>
 
-        {/* Right: Narration panel */}
+        {/* Right: Narrator panel */}
         <Box
           bg="brand.linenDark"
           borderLeftWidth={{ lg: "1px" }}
@@ -258,9 +260,9 @@ export default function SimulationDashboard() {
             mb={4}
             fontFamily="heading"
           >
-            Narrator
+            ☕ Narrator
           </Heading>
-          <NarrationView steps={steps} />
+          <NarratorPanel steps={steps} />
         </Box>
       </Grid>
 

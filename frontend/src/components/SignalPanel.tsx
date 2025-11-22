@@ -138,7 +138,13 @@ export default function SignalPanel({
                 Rate a Movie
               </Text>
               {ratingsCount > 0 && (
-                <Badge bg="brand.terracotta" color="white" borderRadius="full">
+                <Badge
+                  key={ratingsCount}
+                  bg="brand.terracotta"
+                  color="white"
+                  borderRadius="full"
+                  animation="pulse 0.4s ease-out"
+                >
                   {ratingsCount}
                 </Badge>
               )}
@@ -245,7 +251,13 @@ export default function SignalPanel({
                 Genre Preferences
               </Text>
               {genrePreferences.length > 0 && (
-                <Badge bg="brand.honey" color="brand.espresso" borderRadius="full">
+                <Badge
+                  key={genrePreferences.length}
+                  bg="brand.honey"
+                  color="brand.espresso"
+                  borderRadius="full"
+                  animation="pulse 0.4s ease-out"
+                >
                   {genrePreferences.length}
                 </Badge>
               )}
@@ -305,7 +317,13 @@ export default function SignalPanel({
                 View History
               </Text>
               {viewHistoryCount > 0 && (
-                <Badge bg="brand.teal" color="white" borderRadius="full">
+                <Badge
+                  key={viewHistoryCount}
+                  bg="brand.teal"
+                  color="white"
+                  borderRadius="full"
+                  animation="pulse 0.4s ease-out"
+                >
                   {viewHistoryCount}
                 </Badge>
               )}

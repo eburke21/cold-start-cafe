@@ -35,6 +35,8 @@ function StarRating({
           fontSize="lg"
           px={1}
           minW="auto"
+          transition="transform 0.15s ease"
+          _hover={{ transform: "scale(1.3)" }}
         >
           ★
         </Button>
