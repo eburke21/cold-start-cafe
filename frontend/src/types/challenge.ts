@@ -1,26 +1,30 @@
-/** Mirrors backend Pydantic models for the challenge API. (Placeholder for Phase 6+) */
+/** Mirrors backend Pydantic models for the challenge API. */
 
 export interface ChallengeTargetUser {
   demographics: {
-    age: number;
-    gender: string;
-    occupation: string;
+    age: number | null;
+    gender: string | null;
+    occupation: string | null;
   };
   seed_ratings: Array<{
     movie_id: number;
     title: string;
-    score: number;
+    genres: string;
+    score: number | null;
   }>;
+}
+
+export interface ChallengeMovie {
+  movie_id: number;
+  title: string;
+  genres: string;
+  score: number | null;
 }
 
 export interface CreateChallengeResponse {
   session_id: string;
   target_user: ChallengeTargetUser;
-  available_movies: Array<{
-    movie_id: number;
-    title: string;
-    genres: string;
-  }>;
+  available_movies: ChallengeMovie[];
 }
 
 export interface MetricScores {
@@ -39,9 +43,5 @@ export interface SubmitChallengeResponse {
   user_score: MetricScores;
   algorithm_scores: AlgorithmScore[];
   narration: string;
-  ground_truth_favorites: Array<{
-    movie_id: number;
-    title: string;
-    score: number;
-  }>;
+  ground_truth_favorites: ChallengeMovie[];
 }

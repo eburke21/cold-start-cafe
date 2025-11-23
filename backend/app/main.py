@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.data.loader import DataStore
+from app.routers.challenge import router as challenge_router
 from app.routers.movies import router as movies_router
 from app.routers.narration import init_narration_router
 from app.routers.narration import router as narration_router
@@ -64,6 +65,7 @@ app.add_middleware(
 # Register routers
 app.include_router(simulation_router)
 app.include_router(narration_router)
+app.include_router(challenge_router)
 app.include_router(movies_router)
 
 

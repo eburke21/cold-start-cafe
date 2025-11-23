@@ -5,8 +5,9 @@
  * Base URL defaults to "/api/v1" (proxied by Vite in dev).
  */
 
-import type { AddSignalRequest, AddSignalResponse, CreateSimulationResponse, GetSimulationResponse } from "../types/simulation.ts";
+import type { CreateChallengeResponse, SubmitChallengeResponse } from "../types/challenge.ts";
 import type { MovieSearchResponse, MovieSearchResult } from "../types/movies.ts";
+import type { AddSignalRequest, AddSignalResponse, CreateSimulationResponse, GetSimulationResponse } from "../types/simulation.ts";
 
 const BASE_URL = "/api/v1";
 
@@ -76,4 +77,22 @@ export async function searchMovies(
     `/movies/search?${params.toString()}`,
   );
   return data.results;
+}
+
+// --- Challenge API ---
+
+/** Create a new challenge session. */
+export async function createChallenge(): Promise<CreateChallengeResponse> {
+  return request<CreateChallengeResponse>("/challenge", { method: "POST" });
+}
+
+/** Submit 10 movie picks for a challenge. */
+export async function submitChallenge(
+  sessionId: string,
+  picks: number[],
+): Promise<SubmitChallengeResponse> {
+  return request<SubmitChallengeResponse>(`/challenge/${sessionId}/submit`, {
+    method: "POST",
+    body: JSON.stringify({ picks }),
+  });
 }

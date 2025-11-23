@@ -1,6 +1,6 @@
 # ColdStart Cafe
 
-Interactive web app exploring the cold-start problem in recommendation systems. Four algorithms compete with zero data, then progressively recover as users add signals.
+Interactive web app exploring the cold-start problem in recommendation systems. Two modes: **Simulation** — four algorithms compete with zero data, then progressively recover as users add signals; **Challenge** — users compete against the algorithms to recommend movies for a real user profile.
 
 ## Project Structure
 
@@ -17,7 +17,8 @@ cold-start-cafe/
 │   │   ├── routers/
 │   │   │   ├── simulation.py  # POST/GET /simulation, POST /simulation/{id}/signal
 │   │   │   ├── movies.py      # GET /movies/search
-│   │   │   └── narration.py   # GET /simulation/{id}/narration/stream (SSE)
+│   │   │   ├── narration.py   # GET /simulation/{id}/narration/stream (SSE)
+│   │   │   └── challenge.py   # POST /challenge, POST /challenge/{id}/submit
 │   │   └── services/
 │   │       ├── algorithms/
 │   │       │   ├── base.py          # RecommenderResult model + Recommender Protocol
@@ -26,11 +27,13 @@ cold-start-cafe/
 │   │       │   ├── collaborative.py # scikit-surprise SVD, demographic neighbors
 │   │       │   └── hybrid.py        # Adaptive weighted ensemble of all three
 │   │       ├── narration/
-│   │       │   ├── templates.py     # Priority-ordered rule engine for template selection
-│   │       │   └── llm_narrator.py  # Claude API streaming fallback narration
+│   │       │   ├── templates.py           # Priority-ordered rule engine for template selection
+│   │       │   ├── llm_narrator.py        # Claude API streaming fallback narration
+│   │       │   └── challenge_narrator.py  # Claude API non-streaming challenge narration
 │   │       ├── metrics.py           # precision@k, recall@k, NDCG@k
 │   │       ├── ground_truth.py      # Random eligible user + relevant set extraction
 │   │       ├── simulation_engine.py # Orchestrator: apply signal → run algos → narration → metrics
+│   │       ├── challenge_engine.py  # Challenge scoring: user selection, seed ratings, algo comparison
 │   │       ├── session_manager.py   # Thread-safe UUID → SimulationState store
 │   │       └── validators.py        # Signal payload validation against dataset
 │   └── tests/
@@ -47,20 +50,23 @@ cold-start-cafe/
 │       │   ├── SignalFilmstrip.tsx   # Horizontal scrollable signal chip strip
 │       │   ├── NarratorPanel.tsx     # Speech-bubble cards, dual animation (typing/SSE)
 │       │   ├── RecommendationCards.tsx # Tabbed top-10 movie recommendations
+│       │   ├── MoviePicker.tsx       # Challenge movie browser with search + pick chips
+│       │   ├── ScoreComparison.tsx   # Recharts bar chart: user vs. algorithm scores
 │       │   ├── PageTransition.tsx    # Framer Motion fade+slide route wrapper
 │       │   └── Toaster.tsx           # Chakra v3 toast renderer
 │       ├── hooks/
 │       │   ├── useSimulation.ts      # Single source of truth for simulation state + actions
+│       │   ├── useChallenge.ts       # Challenge state machine: setup → picking → results
 │       │   ├── useTypingAnimation.ts # Character-by-character text reveal hook
 │       │   └── useNarrationStream.ts # SSE streaming hook for LLM narrations
 │       ├── pages/
 │       │   ├── LandingPage.tsx     # Hero section + algorithm explainer grid
 │       │   ├── SimulationDashboard.tsx  # Three-column layout (signals | viz | narration)
-│       │   └── ChallengePage.tsx   # Placeholder for Phase 7+
+│       │   └── ChallengePage.tsx   # Three-phase challenge: setup → picking → results
 │       ├── types/
 │       │   ├── simulation.ts   # TS interfaces mirroring backend Pydantic models
 │       │   ├── movies.ts       # MovieSearchResult, MovieSearchResponse
-│       │   └── challenge.ts    # Placeholder types for Phase 7+
+│       │   └── challenge.ts    # Challenge types: target user, scores, create/submit responses
 │       ├── utils/
 │       │   └── toaster.ts      # createToaster instance (separated for fast-refresh)
 │       ├── theme/
@@ -110,7 +116,9 @@ docker compose up --build   # runs both services
 - `GET /api/v1/simulation/{session_id}` → 200, returns full state with all steps + current signal summary
 - `GET /api/v1/movies/search?q={query}&limit={limit}` → 200, title substring search (default limit=10, max=50)
 - `GET /api/v1/simulation/{session_id}/narration/stream?step={step_number}` → SSE stream (template: one `chunk` event + `done`; LLM: streamed `chunk` events + `done`)
-- Errors: 400 (invalid payload — bad movie ID, score out of range, unknown genre), 404 (session not found), 422 (Pydantic validation — wrong type or missing field)
+- `POST /api/v1/challenge` → 201, selects ground-truth user (≥30 ratings), returns demographics, 3 seed ratings, 50 browseable movies
+- `POST /api/v1/challenge/{session_id}/submit` → 200, scores user's 10 picks against ground truth, returns user scores, algorithm scores, LLM narration, ground-truth favorites
+- Errors: 400 (invalid payload — bad movie ID, score out of range, unknown genre, duplicate picks), 404 (session not found), 422 (Pydantic validation — wrong type, missing field, pick count ≠ 10)
 
 ## Architecture
 
@@ -135,7 +143,19 @@ def recommend(state: SimulationState, data: DataStore) -> RecommenderResult
 | + demographics | Returns 10 | Unchanged | Neighbor-init'd | 20/30/50 |
 | All signals | Returns 10 | Boosted by prefs | Full SVD | 15/25/50 |
 
-### Narration System (Two-Tier Architecture)
+### Challenge Mode
+
+Challenge mode is a one-shot evaluation: the user studies a target user profile, picks 10 movies, and gets scored against four algorithms. Unlike simulation's progressive state machine (N signals → N+1 steps), challenge has a simple two-step lifecycle: create → submit.
+
+**Key design decisions:**
+- **Algorithm reuse via structural compatibility:** `challenge_engine.py` constructs a minimal `SimulationState(ratings=seed_ratings, demographics=demographics)` and passes it to the same algorithm functions used by simulation — no new interfaces needed
+- **Pre-computed algorithm scores:** Algorithms run at creation time (scores stored server-side); submit endpoint only scores user picks — reducing submit latency
+- **Module-level dict stores:** Three plain dicts (`_challenge_store`, `_challenge_ground_truth`, `_challenge_algo_scores`) instead of SessionManager — challenges don't need progressive state management
+- **Non-streaming narration:** `client.messages.create()` returns complete text (vs. simulation's `.stream()` → SSE) because challenge results are a one-shot reveal
+- **Layered validation:** Pydantic `Field(min_length=10, max_length=10)` for pick count (→422), explicit code for duplicates/movie existence (→400)
+- **User selection threshold:** ≥30 ratings (vs. simulation's ≥20) to ensure enough high-rated movies for a meaningful relevant set
+
+### Narration System (Two-Tier Architecture + Challenge Narrator)
 
 ```
 Template matcher (instant)          LLM fallback (streaming)
@@ -158,7 +178,8 @@ templates.py                        llm_narrator.py
 
 - **Template path:** `match_template(state, step)` → returns full narration or `None`
 - **LLM path:** `generate_narration(state, step, prev_narrations)` → async generator of text chunks
-- **Graceful degradation:** Template → LLM streaming → static fallback (no API key / API error)
+- **Challenge path:** `generate_challenge_narration(demographics, seed_ratings, user_picks, user_score, algo_scores, data)` → complete string (non-streaming)
+- **Graceful degradation:** Template → LLM streaming → static fallback (no API key / API error); challenge uses `_fallback_narration()` with win-count branching (4 contextual variants)
 - **Temp-step pattern:** `run_step()` builds a temporary `SimulationStep` with empty narration so the template matcher can inspect algorithm results before constructing the final step
 - **Cross-router state sharing:** `get_ground_truth_store()` exposes the ground-truth dict from the simulation router; injected into narration router during `init_narration_router()` at startup
 
@@ -181,11 +202,13 @@ templates.py                        llm_narrator.py
 ### Backend Layers
 
 ```
-Router (HTTP)              → Engine (Orchestration)         → Storage (State)
-routers/simulation.py        services/simulation_engine.py    services/session_manager.py
+Router (HTTP)              → Engine (Orchestration)              → Storage (State)
+routers/simulation.py        services/simulation_engine.py         services/session_manager.py
 routers/movies.py            services/validators.py
 routers/narration.py (SSE)   services/narration/templates.py
-                             services/narration/llm_narrator.py
+routers/challenge.py         services/narration/llm_narrator.py
+                             services/narration/challenge_narrator.py
+                             services/challenge_engine.py          module-level dicts in challenge.py
 ```
 
 - **Routers** handle HTTP concerns: parse requests, map exceptions to status codes (ValueError→400, missing session→404)
@@ -210,11 +233,16 @@ App.tsx (Routes + Navbar + AnimatePresence + Toaster)
 │   └── NarratorPanel        → Speech-bubble cards with dual animation support
 │       ├── useTypingAnimation  → Template narrations: local character-by-character reveal
 │       └── useNarrationStream  → LLM narrations: SSE streaming from Claude API
-└── ChallengePage            → Placeholder for Phase 7+
+└── ChallengePage            → Three-phase state machine, owns useChallenge hook
+    ├── SetupPhase            → Target user card (demographics + 3 seed ratings) + Start button
+    ├── MoviePicker           → 2-column grid with search, pick chips, submit at 10
+    └── ResultsPhase          → ScoreComparison + narration + GroundTruthReveal + Try Again
+        ├── ScoreComparison   → Recharts horizontal bar chart + win/loss badges + scores table
+        └── GroundTruthReveal → User's actual top-rated movies grid
 ```
 
-- **`useSimulation` hook** is the single source of truth — components receive data and callbacks via props, never call `api/client.ts` directly
-- **Exception:** `MovieSearchModal` calls `searchMovies()` directly since search results are ephemeral (not simulation state)
+- **`useSimulation` / `useChallenge` hooks** are the single source of truth — components receive data and callbacks via props, never call `api/client.ts` directly
+- **Exception:** `MovieSearchModal` and `MoviePicker` call `searchMovies()` directly since search results are ephemeral (not simulation/challenge state)
 - **Auto-create on mount:** `useEffect` + `useRef` guard prevents duplicate sessions in StrictMode
 - **Error handling:** API errors → `toaster.create()` toast notifications
 - **Loading states:** Skeleton matching timeline + chart shape during initial load
@@ -258,7 +286,7 @@ App.tsx (Routes + Navbar + AnimatePresence + Toaster)
 - `useCallback` on all hook actions to stabilize function references for child components
 - Debounced search via `useEffect` + `setTimeout` cleanup (no external library)
 - `import type` for all type-only imports (enforced by `verbatimModuleSyntax`)
-- Recharts for data visualization (line charts, tooltips, responsive containers)
+- Recharts for data visualization (line charts, bar charts with `Cell` for per-bar colors, tooltips, responsive containers)
 - Framer Motion for animations (`motion.div`, `AnimatePresence`, `animate` prop)
 - React Router v7 for navigation (`BrowserRouter` wrapping app in `main.tsx`)
 - `useRef` + `hasStartedRef` pattern to prevent duplicate EventSource connections in StrictMode
@@ -279,7 +307,7 @@ GitHub Actions runs on push/PR to `main`:
 
 ## Tests
 
-128 backend tests across 8 test files:
+146 backend tests across 9 test files:
 
 | File | Count | Scope |
 |---|---|---|
@@ -291,14 +319,16 @@ GitHub Actions runs on push/PR to `main`:
 | `test_simulation_api.py` | 29 | Simulation endpoints: create, add signals (all 4 types), get state, error handling |
 | `test_movies_api.py` | 9 | Movie search: queries, limits, case-insensitivity, edge cases |
 | `test_narration.py` | 19 | Template loading, template matcher (step 0, ratings 1-5, signal types, dedup, hybrid leads), LLM fallback, narration_source field |
+| `test_challenge_api.py` | 18 | Challenge create/submit flow, user scores, algorithm scores, narration, ground-truth reveal, error handling (pick count, duplicates, invalid movie/session) |
 
 ```bash
 cd backend
-uv run pytest -v                                 # all 128 tests
+uv run pytest -v                                 # all 146 tests
 uv run pytest tests/test_algorithms.py -v         # fast algorithm unit tests only
 uv run pytest tests/test_algorithm_pipeline.py -v # slow integration tests
 uv run pytest tests/test_simulation_api.py tests/test_movies_api.py -v  # API integration tests
 uv run pytest tests/test_narration.py -v          # narration system tests
+uv run pytest tests/test_challenge_api.py -v      # challenge mode tests
 ```
 
 Frontend checks (no test suite yet — manual testing via browser):

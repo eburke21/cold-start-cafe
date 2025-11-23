@@ -7,11 +7,6 @@ Covers:
 - Integration with simulation engine (narration_source field)
 """
 
-import json
-from pathlib import Path
-
-import pytest
-
 from app.models.enums import AlgorithmName, SignalType
 from app.models.simulation import (
     AlgorithmResult,
@@ -23,7 +18,6 @@ from app.models.simulation import (
 )
 from app.services.narration.llm_narrator import _fallback_narration
 from app.services.narration.templates import _load_templates, match_template
-
 
 # --- Fixtures ---
 
@@ -175,11 +169,7 @@ class TestTemplateMatcherRatings:
         assert result == templates["second_rating"]
 
     def test_three_ratings(self):
-        state = _make_state(
-            ratings=[
-                Rating(movie_id=i, score=4.0) for i in range(1, 4)
-            ]
-        )
+        state = _make_state(ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 4)])
         signal = Signal(
             type=SignalType.RATING,
             step=3,
@@ -192,9 +182,7 @@ class TestTemplateMatcherRatings:
 
     def test_four_ratings_falls_through_to_llm(self):
         """4 ratings has no specific template — should return None for LLM."""
-        state = _make_state(
-            ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 5)]
-        )
+        state = _make_state(ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 5)])
         signal = Signal(
             type=SignalType.RATING,
             step=4,
@@ -205,9 +193,7 @@ class TestTemplateMatcherRatings:
         assert result is None
 
     def test_five_ratings(self):
-        state = _make_state(
-            ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 6)]
-        )
+        state = _make_state(ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 6)])
         signal = Signal(
             type=SignalType.RATING,
             step=5,
@@ -223,9 +209,7 @@ class TestTemplateMatcherSignalTypes:
     """Template matching for non-rating signal types."""
 
     def test_demographics_signal(self):
-        state = _make_state(
-            demographics=Demographics(age=25, gender="M", occupation="student")
-        )
+        state = _make_state(demographics=Demographics(age=25, gender="M", occupation="student"))
         signal = Signal(
             type=SignalType.DEMOGRAPHIC,
             step=1,
@@ -270,9 +254,7 @@ class TestTemplateMatcherDeduplication:
         many_ratings_text = templates["many_ratings"]
 
         # First time at 10 ratings — should match
-        state = _make_state(
-            ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 11)]
-        )
+        state = _make_state(ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 11)])
         signal = Signal(
             type=SignalType.RATING,
             step=10,
@@ -334,9 +316,7 @@ class TestTemplateMatcherHybridLeads:
             ),
         ]
         # Use a rating signal (no specific template at 4 ratings)
-        state = _make_state(
-            ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 5)]
-        )
+        state = _make_state(ratings=[Rating(movie_id=i, score=4.0) for i in range(1, 5)])
         signal = Signal(
             type=SignalType.RATING,
             step=4,
