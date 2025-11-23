@@ -24,6 +24,7 @@ from app.services.algorithms import collaborative, content_based, hybrid, popula
 from app.services.algorithms.base import RecommenderResult
 from app.services.ground_truth import GroundTruthUser
 from app.services.metrics import ndcg_at_k, precision_at_k, recall_at_k
+from app.services.narration.templates import match_template
 
 logger = structlog.get_logger()
 
@@ -65,38 +66,6 @@ def _run_algorithm(
         recall_at_10=recall_at_k(result.movie_ids, ground_truth.relevant_movie_ids),
         ndcg_at_10=ndcg_at_k(result.movie_ids, ground_truth.relevant_movie_ids),
     )
-
-
-def _generate_placeholder_narration(step_number: int, signal: Signal | None) -> str:
-    """Generate a placeholder narration string for a simulation step.
-
-    Real LLM narration comes in Phase 5. For now, describe what happened.
-    """
-    if step_number == 0:
-        return (
-            "Welcome to the cold-start problem! You've just walked into the café as a "
-            "complete stranger. The algorithms have nothing to work with — only the "
-            "popularity baseline can make recommendations. Try adding some signals to "
-            "help the algorithms learn your taste."
-        )
-
-    signal_descriptions = {
-        SignalType.RATING: "You rated a movie! Content-based and collaborative filtering now have "
-        "a data point to work with.",
-        SignalType.DEMOGRAPHIC: "Demographics added! Collaborative filtering can now find similar "
-        "users based on age, gender, and occupation.",
-        SignalType.GENRE_PREFERENCE: "Genre preferences set! Content-based filtering gets a direct "
-        "boost for these genres.",
-        SignalType.VIEW_HISTORY: "Viewing history added! Content-based filtering treats these as "
-        "weak positive signals for the genres you've browsed.",
-    }
-
-    if signal:
-        return signal_descriptions.get(
-            signal.type,
-            f"Signal added at step {step_number}.",
-        )
-    return f"Step {step_number} processed."
 
 
 def apply_signal(state: SimulationState, signal_request: AddSignalRequest) -> Signal:
@@ -179,13 +148,29 @@ def run_step(
         algo_result = _run_algorithm(name, recommend_fn, state, data, ground_truth)
         results.append(algo_result)
 
-    narration = _generate_placeholder_narration(step_number, signal)
+    # Build a temporary step so the template matcher can inspect algorithm results
+    temp_step = SimulationStep(
+        step_number=step_number,
+        signal_added=signal,
+        results=results,
+        narration="",
+    )
+    template_narration = match_template(state, temp_step)
+
+    if template_narration:
+        narration = template_narration
+        narration_source = "template"
+    else:
+        # Placeholder — the SSE narration endpoint will generate the real LLM narration
+        narration = "Generating narration..."
+        narration_source = "llm"
 
     step = SimulationStep(
         step_number=step_number,
         signal_added=signal,
         results=results,
         narration=narration,
+        narration_source=narration_source,
     )
 
     elapsed_ms = (time.time() - start_time) * 1000

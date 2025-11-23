@@ -9,7 +9,9 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.data.loader import DataStore
 from app.routers.movies import router as movies_router
-from app.routers.simulation import init_simulation_router
+from app.routers.narration import init_narration_router
+from app.routers.narration import router as narration_router
+from app.routers.simulation import get_ground_truth_store, init_simulation_router
 from app.routers.simulation import router as simulation_router
 from app.services.session_manager import SessionManager
 
@@ -33,6 +35,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     session_manager = SessionManager(max_sessions=settings.MAX_CONCURRENT_SESSIONS)
     app.state.session_manager = session_manager
     init_simulation_router(session_manager)
+    init_narration_router(session_manager, get_ground_truth_store())
     logger.info("Session manager initialized", max_sessions=settings.MAX_CONCURRENT_SESSIONS)
 
     yield
@@ -60,6 +63,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(simulation_router)
+app.include_router(narration_router)
 app.include_router(movies_router)
 
 

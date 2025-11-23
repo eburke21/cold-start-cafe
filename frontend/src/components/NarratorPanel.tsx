@@ -1,22 +1,52 @@
 import { useEffect, useRef } from "react";
 import { Box, Text, VStack } from "@chakra-ui/react";
 
+import { useNarrationStream } from "../hooks/useNarrationStream";
 import { useTypingAnimation } from "../hooks/useTypingAnimation";
 import type { SimulationStep } from "../types/simulation";
 
 /**
- * A single narration card with optional typing animation.
- * Only the most recent narration gets the typing effect —
- * previous narrations display their full text instantly.
+ * A single narration card with dual animation support.
+ *
+ * Template narrations get the local typing effect (useTypingAnimation).
+ * LLM narrations stream via SSE — the network provides the typing feel.
+ * Both hooks are always called (React rules), but only the active one
+ * does real work via skip/enabled flags.
  */
 function NarrationCard({
   step,
   isLatest,
+  sessionId,
 }: {
   step: SimulationStep;
   isLatest: boolean;
+  sessionId: string | null;
 }) {
-  const displayedText = useTypingAnimation(step.narration, 30, !isLatest);
+  const isLlm = step.narration_source === "llm";
+
+  // Hook 1: Local typing animation (active for template narrations on latest step)
+  const typingText = useTypingAnimation(step.narration, 30, !isLatest || isLlm);
+
+  // Hook 2: SSE stream (active for LLM narrations on latest step)
+  const { text: streamedText, isStreaming } = useNarrationStream(
+    sessionId,
+    step.step_number,
+    step.narration_source ?? "template",
+    step.narration,
+    isLatest && isLlm,
+  );
+
+  // Choose which text and cursor state to display
+  let displayedText: string;
+  let showCursor: boolean;
+
+  if (isLlm) {
+    displayedText = streamedText;
+    showCursor = isStreaming;
+  } else {
+    displayedText = typingText;
+    showCursor = isLatest && typingText.length < step.narration.length;
+  }
 
   return (
     <Box
@@ -43,10 +73,15 @@ function NarrationCard({
       <Text fontSize="xs" fontWeight="600" color="brand.espressoLight" mb={1}>
         Step {step.step_number}
         {step.signal_added ? ` — ${step.signal_added.type}` : ""}
+        {isLlm && (
+          <Text as="span" color="brand.sage" ml={1}>
+            ✨
+          </Text>
+        )}
       </Text>
       <Text fontSize="sm" lineHeight="1.6" color="brand.espresso">
         {displayedText}
-        {isLatest && displayedText.length < step.narration.length && (
+        {showCursor && (
           <Text as="span" animation="blink 1s steps(1) infinite">
             ▌
           </Text>
@@ -58,6 +93,7 @@ function NarrationCard({
 
 interface NarratorPanelProps {
   steps: SimulationStep[];
+  sessionId: string | null;
 }
 
 /**
@@ -65,10 +101,11 @@ interface NarratorPanelProps {
  *
  * Features:
  * - Café-themed speech-bubble cards with warm tones
- * - Typing animation on the most recent narration
+ * - Typing animation on template narrations (latest step)
+ * - SSE streaming on LLM narrations (latest step, sparkle indicator)
  * - Auto-scrolls to the latest narration
  */
-export default function NarratorPanel({ steps }: NarratorPanelProps) {
+export default function NarratorPanel({ steps, sessionId }: NarratorPanelProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to the latest narration when steps change
@@ -98,6 +135,7 @@ export default function NarratorPanel({ steps }: NarratorPanelProps) {
           key={step.step_number}
           step={step}
           isLatest={index === steps.length - 1}
+          sessionId={sessionId}
         />
       ))}
       <div ref={endRef} />

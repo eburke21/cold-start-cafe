@@ -43,6 +43,11 @@ def init_simulation_router(session_manager: SessionManager) -> None:
     _session_manager = session_manager
 
 
+def get_ground_truth_store() -> dict[str, GroundTruthUser]:
+    """Expose the ground-truth store for other routers (e.g. narration)."""
+    return _ground_truth_store
+
+
 def _get_session_manager() -> SessionManager:
     if _session_manager is None:
         raise RuntimeError("Session manager not initialized")

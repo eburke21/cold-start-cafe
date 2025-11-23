@@ -262,7 +262,7 @@ export default function SimulationDashboard() {
           >
             ☕ Narrator
           </Heading>
-          <NarratorPanel steps={steps} />
+          <NarratorPanel steps={steps} sessionId={sessionId} />
         </Box>
       </Grid>
 

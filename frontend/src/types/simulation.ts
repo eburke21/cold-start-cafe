@@ -49,6 +49,8 @@ export interface SimulationStep {
   signal_added: Signal | null;
   results: AlgorithmResult[];
   narration: string;
+  /** "template" for pre-generated narrations, "llm" for Claude API streaming */
+  narration_source?: "template" | "llm";
 }
 
 export interface CurrentSignals {

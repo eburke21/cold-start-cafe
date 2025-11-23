@@ -58,6 +58,7 @@ class SimulationStep(BaseModel):
     signal_added: Signal | None = None
     results: list[AlgorithmResult]
     narration: str
+    narration_source: str = "template"  # "template" or "llm"
 
 
 class SimulationState(BaseModel):

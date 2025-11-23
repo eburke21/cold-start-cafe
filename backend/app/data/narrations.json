@@ -1,0 +1,27 @@
+{
+  "cold_start_intro": "Welcome to the cold-start problem! You've just walked into the café as a complete stranger — none of our four recommendation chefs know anything about your taste yet. Only the popularity baseline has something to serve: crowd favorites. The other algorithms are staring at empty order pads. Time to give them something to work with.",
+
+  "first_rating": "Your first rating just hit the kitchen! Content-based filtering immediately scans for movies with similar genres — even one data point gives it a direction. Collaborative filtering barely budges, though; it needs a pattern of ratings to find your 'taste neighbors.' The hybrid chef takes note, but it's still leaning heavily on popularity.",
+
+  "three_ratings": "Three ratings in and the picture sharpens. Collaborative filtering is starting to find faint patterns — users who agreed with you on these movies might share other preferences too. The predictions are noisy, but real. Content-based has a solid genre profile to work with now.",
+
+  "five_ratings": "Five ratings is a tipping point. Collaborative filtering likely catches up to — or even surpasses — content-based. Your taste neighborhood is becoming clear: the algorithm can now identify real 'people like you' in the dataset. The hybrid chef is blending both signals with increasing confidence.",
+
+  "many_ratings": "With this many ratings, every chef in the kitchen knows what you like. Collaborative filtering has a rich taste profile, content-based has a deep genre map, and the hybrid blends them seamlessly. You've gone from a cold start to a warm, personalized experience — exactly the journey recommendation systems navigate for every new user.",
+
+  "demographics_added": "Demographics on file! Collaborative filtering just got a shortcut — instead of waiting for rating patterns, it can immediately find users with similar age, gender, and occupation. It's like telling the chef 'I'm a 25-year-old student' before even ordering. The recommendations should shift noticeably.",
+
+  "genre_prefs_set": "Genre preferences locked in! Content-based filtering gets its biggest direct boost — you've essentially handed it a recipe card. Instead of inferring taste from ratings, it knows exactly which genres to prioritize. Watch how content-based scores jump on the next update.",
+
+  "view_history_added": "Viewing history logged! These are implicit signals — you watched these movies but didn't rate them. Content-based treats them as weak positive signals, inferring genre preferences from what you chose to watch. It's the difference between 'I liked this' and 'I was curious enough to try it.'",
+
+  "hybrid_leads": "The hybrid algorithm just took the lead! This is the classic recommendation system insight: ensembles beat specialists. By blending popularity's safety net, content-based's genre matching, and collaborative filtering's taste neighborhoods, the hybrid chef consistently outperforms any single approach.",
+
+  "second_rating": "Another rating in the books. Content-based refines its genre profile — two data points start revealing patterns. Is there a genre overlap? Collaborative filtering is still warming up, but each rating brings it closer to finding your taste tribe.",
+
+  "content_based_leads": "Content-based filtering is pulling ahead! With your genre preferences and ratings, it has a clear picture of what you like. It doesn't need other users to make good predictions — just a solid understanding of movie features and your stated taste.",
+
+  "collaborative_catches_up": "Collaborative filtering is making its move! It's found enough 'taste neighbors' — users who rated movies similarly to you — that its predictions are becoming reliable. This is the algorithm's sweet spot: enough data to find real patterns, not so much that it's just echoing your history.",
+
+  "all_signals_combined": "You've given the algorithms the full picture: ratings, demographics, genre preferences, and viewing history. This is the opposite of a cold start — it's a warm, data-rich environment where every algorithm can perform at its best. Compare the scores now versus step 0 to see how far they've come."
+}
