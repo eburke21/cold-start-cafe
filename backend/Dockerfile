@@ -3,6 +3,10 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
+# Install build tools needed for scikit-surprise Cython extensions
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install uv for fast dependency resolution
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
