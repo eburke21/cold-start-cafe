@@ -22,13 +22,14 @@ WORKDIR /app
 # Create non-root user for security
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
-# Copy uv and installed dependencies from builder
-COPY --from=builder /bin/uv /bin/uvx /bin/
+# Copy installed dependencies from builder (uv not needed at runtime)
 COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/pyproject.toml /app/uv.lock* /app/
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy application code
 COPY app/ app/
+# Copy movie data
+COPY data/ /app/data/
 
 # Switch to non-root user
 USER appuser
@@ -39,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" || exit 1
 
 # Production server with 2 workers (suitable for demo/portfolio use)
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
