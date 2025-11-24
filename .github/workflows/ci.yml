@@ -50,6 +50,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Build backend Docker image
-        run: docker build -t coldstart-cafe-backend ./backend
+        run: docker build -t coldstart-cafe-backend -f backend/Dockerfile .
       - name: Build frontend Docker image
         run: docker build -t coldstart-cafe-frontend ./frontend

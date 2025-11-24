@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Install production dependencies only (no dev deps)
-COPY pyproject.toml uv.lock* ./
+# Paths relative to repo root (Railway build context = repo root)
+COPY backend/pyproject.toml backend/uv.lock* ./
 RUN uv sync --frozen --no-dev
 
 # ── Stage 2: Production image ────────────────────────────────
@@ -19,15 +20,16 @@ FROM python:3.12-slim AS production
 
 WORKDIR /app
 
-# Create non-root user for security
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+# Create non-root user with a writable home directory
+# (scikit-surprise and other libs need $HOME to exist)
+RUN addgroup --system appgroup && adduser --system --home /home/appuser --ingroup appgroup appuser
 
 # Copy installed dependencies from builder (uv not needed at runtime)
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy application code
-COPY app/ app/
+COPY backend/app/ app/
 # Copy movie data
 COPY data/ /app/data/
 
