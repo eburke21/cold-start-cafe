@@ -70,8 +70,8 @@ class TestCreateSimulation:
         dist = data["ground_truth_genre_distribution"]
         assert isinstance(dist, dict)
         assert len(dist) > 0
-        # All values should be between 0 and 1
-        assert all(0 < v <= 1.0 for v in dist.values())
+        # All values should be between 0 and 1 (0 is valid for genres with no ratings)
+        assert all(0 <= v <= 1.0 for v in dist.values())
 
     def test_create_returns_narration(self, client):
         response = client.post("/api/v1/simulation")

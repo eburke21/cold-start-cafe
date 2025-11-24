@@ -42,7 +42,7 @@ export default function RecommendationCards({
   );
 
   return (
-    <Box bg="white" p={4} borderRadius="lg" shadow="sm" mt={4}>
+    <Box bg="white" p={4} borderRadius="lg" className="cafe-card" mt={4}>
       <Text fontSize="sm" fontWeight="600" color="brand.espresso" mb={3}>
         Top-10 Recommendations — Step {currentStep.step_number}
       </Text>

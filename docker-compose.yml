@@ -8,18 +8,28 @@ services:
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - DATA_DIR=/app/data
+      - CORS_ORIGINS=["http://localhost","http://localhost:80"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
       interval: 10s
       timeout: 5s
+      start_period: 15s
       retries: 3
 
   frontend:
     build: ./frontend
     ports:
-      - "5173:5173"
+      - "80:80"
     depends_on:
       backend:
         condition: service_healthy
-    environment:
-      - VITE_API_URL=http://backend:8000
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M

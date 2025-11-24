@@ -70,7 +70,17 @@ export default function AlgorithmTimeline({
   }
 
   return (
-    <Box bg="white" p={4} borderRadius="lg" shadow="sm" mb={4}>
+    <Box
+      bg="white"
+      p={4}
+      borderRadius="lg"
+      className="cafe-card"
+      mb={4}
+      role="img"
+      aria-label={`Algorithm performance at step ${currentStep.step_number}. ${ALGORITHMS.map(
+        (a) => `${a.label}: ${((metricValues[a.key] ?? 0) * 100).toFixed(0)}%`
+      ).join(", ")}`}
+    >
       {/* Step indicator */}
       <HStack justify="space-between" mb={3}>
         <Text fontSize="xs" fontWeight="600" color="brand.espressoLight">
@@ -88,18 +98,30 @@ export default function AlgorithmTimeline({
           const prevValue = prevMetricValues[algo.key] ?? 0;
           const percentage = Math.max(value * 100, 2); // min 2% for visibility
           const improved = value - prevValue > 0.05;
+          const bigJump = value - prevValue > 0.1;
 
           return (
             <HStack key={algo.key} gap={2}>
-              <Text
-                fontSize="xs"
-                fontWeight="500"
-                color="brand.espresso"
+              <HStack
+                gap={1}
                 w="90px"
                 flexShrink={0}
               >
-                {algo.label}
-              </Text>
+                <Box
+                  w="8px"
+                  h="8px"
+                  borderRadius="full"
+                  bg={algo.color}
+                  flexShrink={0}
+                />
+                <Text
+                  fontSize="xs"
+                  fontWeight="500"
+                  color="brand.espresso"
+                >
+                  {algo.label}
+                </Text>
+              </HStack>
 
               {/* Bar track */}
               <Box
@@ -136,10 +158,31 @@ export default function AlgorithmTimeline({
                     fontWeight="700"
                     color="white"
                     lineHeight="1"
+                    fontFamily="mono"
                   >
                     {value.toFixed(2)}
                   </Text>
                 </motion.div>
+
+                {/* Sparkle burst for big jumps (>0.1 increase) */}
+                {bigJump && (
+                  <motion.div
+                    key={`spark-${algo.key}-${currentStep.step_number}`}
+                    initial={{ scale: 0, opacity: 1 }}
+                    animate={{ scale: [0, 1.5, 0], opacity: [1, 0.8, 0] }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: "14px",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    ✨
+                  </motion.div>
+                )}
               </Box>
             </HStack>
           );

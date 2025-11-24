@@ -5,6 +5,7 @@ POST /api/v1/challenge/{session_id}/submit — Submit 10 movie picks and get sco
 """
 
 import random
+import time
 from uuid import UUID
 
 import structlog
@@ -40,6 +41,8 @@ _challenge_store: dict[str, ChallengeState] = {}
 _challenge_ground_truth: dict[str, GroundTruthUser] = {}
 # Algorithm scores computed at creation time (UUID → list[AlgorithmScore])
 _challenge_algo_scores: dict[str, list] = {}
+# Creation timestamps for TTL eviction
+_challenge_created_at: dict[str, float] = {}
 
 
 @router.post(
@@ -74,6 +77,7 @@ async def create_challenge(request: Request):
     _challenge_store[session_id] = challenge_state
     _challenge_ground_truth[session_id] = ground_truth
     _challenge_algo_scores[session_id] = algo_scores
+    _challenge_created_at[session_id] = time.time()
 
     logger.info(
         "Challenge created",
@@ -222,3 +226,32 @@ def _get_browseable_movies(data, count: int = 50) -> list[MovieRecommendation]:
             )
         )
     return movies
+
+
+def evict_expired_challenges(ttl_seconds: int) -> int:
+    """Remove challenge sessions older than the given TTL.
+
+    Args:
+        ttl_seconds: Maximum session age in seconds.
+
+    Returns:
+        Number of sessions evicted.
+    """
+    now = time.time()
+    cutoff = now - ttl_seconds
+    expired = [sid for sid, created in _challenge_created_at.items() if created < cutoff]
+
+    for sid in expired:
+        _challenge_store.pop(sid, None)
+        _challenge_ground_truth.pop(sid, None)
+        _challenge_algo_scores.pop(sid, None)
+        _challenge_created_at.pop(sid, None)
+
+    if expired:
+        logger.info(
+            "Evicted expired challenge sessions",
+            count=len(expired),
+            ttl_seconds=ttl_seconds,
+        )
+
+    return len(expired)

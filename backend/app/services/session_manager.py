@@ -1,22 +1,25 @@
 """In-memory session storage for simulation state.
 
 Maps UUID → SimulationState. Thread-safe via threading.Lock.
-Sessions are stored with creation timestamps for TTL-based cleanup
-(actual cleanup logic deferred to Phase 7).
+Sessions are stored with creation timestamps for TTL-based cleanup.
 """
 
 import threading
 import time
 from uuid import UUID
 
+import structlog
+
 from app.models.simulation import SimulationState
+
+logger = structlog.get_logger()
 
 
 class SessionManager:
     """Thread-safe in-memory session store.
 
     Each simulation session gets a UUID key and a SimulationState value.
-    The manager tracks creation timestamps for future TTL enforcement.
+    The manager tracks creation timestamps for TTL-based eviction.
     """
 
     def __init__(self, max_sessions: int = 100) -> None:
@@ -58,6 +61,34 @@ class SessionManager:
                 del self._created_at[session_id]
                 return True
             return False
+
+    def evict_expired(self, ttl_seconds: int) -> int:
+        """Remove sessions older than the given TTL.
+
+        Args:
+            ttl_seconds: Maximum session age in seconds.
+
+        Returns:
+            Number of sessions evicted.
+        """
+        now = time.time()
+        cutoff = now - ttl_seconds
+
+        with self._lock:
+            expired = [sid for sid, created in self._created_at.items() if created < cutoff]
+            for sid in expired:
+                del self._sessions[sid]
+                del self._created_at[sid]
+
+        if expired:
+            logger.info(
+                "Evicted expired sessions",
+                count=len(expired),
+                ttl_seconds=ttl_seconds,
+                remaining=self.session_count,
+            )
+
+        return len(expired)
 
     @property
     def session_count(self) -> int:

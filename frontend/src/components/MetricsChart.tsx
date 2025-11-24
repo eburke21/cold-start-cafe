@@ -90,7 +90,7 @@ export default function MetricsChart({ steps }: MetricsChartProps) {
   return (
     <Box>
       {/* Metric toggle buttons */}
-      <HStack gap={2} mb={4}>
+      <HStack gap={2} mb={4} role="group" aria-label="Metric selector">
         {METRIC_OPTIONS.map((option) => (
           <Box
             key={option.key}
@@ -102,6 +102,8 @@ export default function MetricsChart({ steps }: MetricsChartProps) {
             fontWeight={activeMetric === option.key ? "600" : "400"}
             bg={activeMetric === option.key ? "brand.terracotta" : "white"}
             color={activeMetric === option.key ? "white" : "brand.espressoLight"}
+            aria-pressed={activeMetric === option.key}
+            aria-label={`Show ${option.label} metric`}
             borderWidth="1px"
             borderColor={
               activeMetric === option.key ? "brand.terracotta" : "brand.linenDark"
@@ -122,7 +124,7 @@ export default function MetricsChart({ steps }: MetricsChartProps) {
       </HStack>
 
       {/* Chart */}
-      <Box bg="white" p={4} borderRadius="lg" shadow="sm">
+      <Box bg="white" p={4} borderRadius="lg" className="cafe-card">
         <ResponsiveContainer width="100%" height={320}>
           <LineChart
             data={data}
@@ -194,6 +196,36 @@ export default function MetricsChart({ steps }: MetricsChartProps) {
           </Text>
         )}
       </Box>
+
+      {/* Screen reader data table — hidden visually, available to assistive tech */}
+      {data.length > 0 && (
+        <Box srOnly>
+          <table>
+            <caption>
+              {METRIC_OPTIONS.find((m) => m.key === activeMetric)?.label} by
+              algorithm across simulation steps
+            </caption>
+            <thead>
+              <tr>
+                <th>Step</th>
+                {ALGORITHMS.map((a) => (
+                  <th key={a.key}>{a.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row) => (
+                <tr key={row.step}>
+                  <td>{row.step}</td>
+                  {ALGORITHMS.map((a) => (
+                    <td key={a.key}>{row[a.key].toFixed(3)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+      )}
     </Box>
   );
 }

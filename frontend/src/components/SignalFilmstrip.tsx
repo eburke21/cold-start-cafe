@@ -90,9 +90,14 @@ export default function SignalFilmstrip({ steps }: SignalFilmstripProps) {
           return (
             <motion.div
               key={step.step_number}
-              initial={{ opacity: 0, x: 20, scale: 0.9 }}
+              initial={{ opacity: 0, x: 30, scale: 0.8 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 20,
+                mass: 0.8,
+              }}
             >
               <Box
                 ref={isLatest ? endRef : undefined}

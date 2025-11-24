@@ -31,6 +31,7 @@ const config = defineConfig({
       fonts: {
         heading: { value: "'Playfair Display', serif" },
         body: { value: "'Inter', sans-serif" },
+        mono: { value: "'Fira Code', monospace" },
       },
     },
   },

@@ -25,9 +25,9 @@ from app.services.algorithms.base import RecommenderResult
 
 logger = structlog.get_logger()
 
-# SVD hyperparameters
+# SVD hyperparameters — tuned for interactive demo latency (<1s)
 N_FACTORS = 50
-N_EPOCHS = 20
+N_EPOCHS = 10
 SIMULATED_USER_ID = 0
 
 # Demographic neighbor settings

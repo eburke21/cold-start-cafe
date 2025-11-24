@@ -102,7 +102,7 @@ export default function ScoreComparison({
       </Flex>
 
       {/* Bar chart */}
-      <Box bg="white" p={4} borderRadius="lg" shadow="sm">
+      <Box bg="white" p={4} borderRadius="lg" className="cafe-card">
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -119,7 +119,14 @@ export default function ScoreComparison({
               ]}
             />
             <Legend />
-            <Bar dataKey="precision" name="Precision@10" radius={[0, 4, 4, 0]}>
+            <Bar
+              dataKey="precision"
+              name="Precision@10"
+              radius={[0, 4, 4, 0]}
+              isAnimationActive={true}
+              animationDuration={800}
+              animationEasing="ease-out"
+            >
               {chartData.map((entry, idx) => (
                 <Cell key={idx} fill={entry.fill} />
               ))}
@@ -129,7 +136,7 @@ export default function ScoreComparison({
       </Box>
 
       {/* Detailed scores table */}
-      <Box bg="white" p={4} borderRadius="lg" shadow="sm">
+      <Box bg="white" p={4} borderRadius="lg" className="cafe-card">
         <Text fontSize="sm" fontWeight="600" color="brand.espresso" mb={2}>
           Detailed Scores
         </Text>

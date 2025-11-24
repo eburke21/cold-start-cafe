@@ -146,6 +146,7 @@ export default function MoviePicker({
         bg="white"
         borderColor="brand.linenDark"
         _focus={{ borderColor: "brand.teal" }}
+        aria-label="Search movies by title"
       />
 
       {isSearching && (
@@ -184,8 +185,21 @@ export default function MoviePicker({
                     : undefined
                 }
                 transition="all 0.15s ease"
+                role="button"
+                tabIndex={isPicked || picks.length < 10 ? 0 : -1}
+                aria-pressed={isPicked}
+                aria-label={`${isPicked ? "Remove" : "Select"} ${movie.title}`}
                 onClick={() => {
                   if (isPicked || picks.length < 10) {
+                    onTogglePick(movie.movie_id);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    (e.key === "Enter" || e.key === " ") &&
+                    (isPicked || picks.length < 10)
+                  ) {
+                    e.preventDefault();
                     onTogglePick(movie.movie_id);
                   }
                 }}

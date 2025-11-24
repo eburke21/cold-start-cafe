@@ -40,3 +40,14 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run type-check
+      - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend Docker image
+        run: docker build -t coldstart-cafe-backend ./backend
+      - name: Build frontend Docker image
+        run: docker build -t coldstart-cafe-frontend ./frontend

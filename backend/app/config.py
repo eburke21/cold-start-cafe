@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_SESSIONS: int = 100
     LOG_LEVEL: str = "INFO"
     DATA_DIR: str = "data"
+    RATE_LIMIT_ENABLED: bool = True
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

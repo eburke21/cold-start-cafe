@@ -22,7 +22,7 @@ export default function Navbar() {
       <Flex maxW="1400px" mx="auto" align="center" justify="space-between">
         <Heading as="h1" size="lg" color="brand.terracotta">
           <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
-            ColdStart Café
+            ☕ ColdStart Café
           </Link>
         </Heading>
 

@@ -1,4 +1,17 @@
-/* Global keyframe animations used across components */
+/* Global styles — café-themed polish */
+
+/* Subtle linen texture background via repeating SVG noise */
+body {
+  background-color: #faf0e6;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='40' height='40' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* Warm café drop shadow utility — applied to cards and panels */
+.cafe-card {
+  box-shadow: 0 4px 12px rgba(200, 85, 61, 0.08);
+}
+
+/* Keyframe animations used across components */
 
 @keyframes pulse {
   0% {
