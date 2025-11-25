@@ -41,5 +41,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" || exit 1
 
-# Production server with 2 workers (suitable for demo/portfolio use)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Single worker — sessions are in-memory (process-local), so multiple
+# workers would cause 404s when requests route to the wrong process.
+# One async worker with uvloop handles portfolio-level traffic fine.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
