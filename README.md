@@ -1,8 +1,12 @@
 # ☕ ColdStart Cafe
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+
+<img width="307" height="171" alt="image 3" src="https://github.com/user-attachments/assets/3c4a4c4f-c9fb-4eb2-b8cf-08a08df2ca07" />
+
+
 
 **An interactive exploration of the cold-start problem in recommendation systems.**
 
