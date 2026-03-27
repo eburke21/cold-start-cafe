@@ -6,9 +6,9 @@
 
 <img width="307" height="171" alt="image 3" src="https://github.com/user-attachments/assets/3c4a4c4f-c9fb-4eb2-b8cf-08a08df2ca07" />
 
-
-
 **An interactive exploration of the cold-start problem in recommendation systems.**
+
+![ColdStart Cafe Demo](frontend/public/cold-start-coffee-demo.gif)
 
 Watch four recommendation algorithms compete in real time — starting from zero knowledge — as you feed them signals like movie ratings, demographics, genre preferences, and viewing history. Then challenge the algorithms directly: can *you* recommend movies better than the machines?
 
